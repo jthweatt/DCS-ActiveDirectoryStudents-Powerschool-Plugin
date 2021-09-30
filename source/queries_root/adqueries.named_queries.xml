@@ -1,0 +1,102 @@
+<?xml version="1.0"?>
+<queries>
+<query name="us.al.k12.dothan.activedirectory.students" coreTable="STUDENTS" flattened="true">
+		<description>Pulls student data for Active Directory</description>
+		<args>
+		</args>
+		<columns>
+			<column column="STUDENTS.STUDENT_NUMBER">Student_number</column>
+      <column column="STUDENTS.LAST_NAME">Last_name</column>
+			<column column="STUDENTS.FIRST_NAME">First_name</column>
+			<column column="STUDENTS.MIDDLE_NAME">Middle_name</column>
+      <column column="STUDENTS.GRADE_LEVEL">Grade_level</column>
+      <column column="SCHOOLS.NAME">School_name</column>
+    </columns>
+		<sql>
+			<![CDATA[
+			WITH 
+  current_year as (
+  /*
+  -- Define the year with the largest student count
+  -- as the current school year
+  */
+  select yearid 
+  from (
+    select 
+          t.yearid as yearid,
+          count(s.dcid) as cnt
+        from students s
+    join terms t
+      on    t.schoolid = s.schoolid and s.schoolid not in (888888,999999)
+			and t.yearid >= 30
+            and t.isyearrec = 1
+            and s.entrydate between t.firstday and t.lastday
+    group by t.yearid
+    order by count(s.dcid) desc
+  )
+  where rownum = 1
+),
+  active_students as (
+  /*
+  -- Pull the most current enrollment from the PowerSchool STUDENTS table
+  -- for students enrolled in the current school year
+  */
+  SELECT STU.STUDENT_NUMBER, STU.ID
+  FROM STUDENTS STU
+  where stu.student_number is not null
+  and stu.entrydate < stu.exitdate
+  and exists (select 1
+              from terms
+              join current_year y on y.yearid = terms.yearid and terms.isyearrec = 1
+              where stu.entrydate <= terms.lastday
+              and stu.exitdate > terms.firstday
+              and stu.schoolid = terms.schoolid
+             )
+  union
+  /*
+  -- Pull all prior enrollment records from the PowerSchool REENROLLMENTS table
+  -- for students who had multiple enrollments in the current school year
+  */
+  SELECT STU.STUDENT_NUMBER, ENR.STUDENTID
+  FROM REENROLLMENTS ENR
+  inner join students stu on enr.studentid = stu.id
+  and stu.student_number is not null
+  where enr.entrydate < enr.exitdate
+  and exists (select 1
+              from terms
+              join current_year y on y.yearid = terms.yearid and terms.isyearrec = 1
+              where enr.entrydate <= terms.lastday
+              and enr.exitdate > terms.firstday
+              and enr.schoolid = terms.schoolid
+              )
+  )
+SELECT
+  s.student_number as "Student_number",
+  ltrim(rtrim(replace(s.last_name,chr(34),chr(39)))) as "Last_name",
+  ltrim(rtrim(replace(s.first_name,chr(34),chr(39)))) as "First_name",
+  ltrim(rtrim(replace(s.middle_name,chr(34),chr(39)))) as "Middle_name",
+  s.grade_level as "Grade",
+  sch.name as "School_name"
+  FROM active_students stu
+join (  -- detect new year rollover "today"
+  select 1 as value
+  from prefs
+  where name = 'lastpromotiondate'
+  and to_char(to_date(value, 'mm/dd/yyyy'), 'J') <> to_char(sysdate, 'J')
+  union
+  select 2 as value 
+  from (
+    select name
+        from prefs
+    where not exists (select 1 from prefs where name = 'lastpromotiondate')
+  )
+  where rownum = 1
+) on 1 = 1
+inner join students s on stu.id = s.id and stu.student_number is not null
+join schools sch on s.schoolID = sch.school_number
+where s.state_studentnumber is not null AND s.enroll_status = 0
+order by s.student_number
+			]]>
+		</sql>
+	</query>
+</queries>
