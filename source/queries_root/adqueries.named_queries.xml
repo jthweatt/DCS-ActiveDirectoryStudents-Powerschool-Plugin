@@ -11,6 +11,8 @@
 			<column column="STUDENTS.MIDDLE_NAME">Middle_name</column>
       <column column="STUDENTS.GRADE_LEVEL">Grade_level</column>
       <column column="SCHOOLS.NAME">School_name</column>
+      <column column="STUDENTS.HOME_ROOM">Homeroom</column>
+      <column column="STUDENTS.ENROLL_STATUS">Enroll_status</column>
     </columns>
 		<sql>
 			<![CDATA[
@@ -77,6 +79,8 @@ SELECT
   ltrim(rtrim(replace(s.middle_name,chr(34),chr(39)))) as "Middle_name",
   s.grade_level as "Grade",
   sch.name as "School_name"
+  CONCAT(substr(CONCAT('000',cc.Section_Number),-4), CONCAT(' ', u.last_name)) as "Homeroom",
+  s.enroll_status
   FROM active_students stu
 join (  -- detect new year rollover "today"
   select 1 as value
@@ -94,7 +98,10 @@ join (  -- detect new year rollover "today"
 ) on 1 = 1
 inner join students s on stu.id = s.id and stu.student_number is not null
 join schools sch on s.schoolID = sch.school_number
-where s.state_studentnumber is not null AND s.enroll_status = 0
+left join cc on s.id = cc.studentid and cc.course_number = '22991X00' and cc.termid = 3100
+left join schoolstaff ss on ss.id = cc.teacherid
+left join users u on u.dcid = ss.USERS_DCID
+where s.state_studentnumber is not null
 order by s.student_number
 			]]>
 		</sql>
