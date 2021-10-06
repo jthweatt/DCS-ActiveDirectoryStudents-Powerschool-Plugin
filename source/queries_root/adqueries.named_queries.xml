@@ -78,7 +78,7 @@ SELECT
   ltrim(rtrim(replace(s.first_name,chr(34),chr(39)))) as "First_name",
   ltrim(rtrim(replace(s.middle_name,chr(34),chr(39)))) as "Middle_name",
   s.grade_level as "Grade",
-  sch.name as "School_name"
+  sch.name as "School_name",
   CONCAT(substr(CONCAT('000',cc.Section_Number),-4), CONCAT(' ', u.last_name)) as "Homeroom",
   s.enroll_status
   FROM active_students stu
