@@ -5,6 +5,7 @@
 		<args>
 		</args>
 		<columns>
+      <column column="STUDENTS.DCID">DCID</column>
 			<column column="STUDENTS.STUDENT_NUMBER">Student_number</column>
       <column column="STUDENTS.LAST_NAME">Last_name</column>
 			<column column="STUDENTS.FIRST_NAME">First_name</column>
@@ -13,6 +14,10 @@
       <column column="SCHOOLS.NAME">School_name</column>
       <column column="STUDENTS.HOME_ROOM">Homeroom</column>
       <column column="STUDENTS.ENROLL_STATUS">Enroll_status</column>
+      <column column="STUDENTS.ENTRYCODE">Entry_code</column>
+      <column column="STUDENTS.ENTRYDATE">Entry_date</column>
+      <column column="STUDENTS.EXITCODE">Exit_code</column>
+      <column column="STUDENTS.EXITDATE">Exit_date</column>
     </columns>
 		<sql>
 			<![CDATA[
@@ -73,6 +78,7 @@
               )
   )
 SELECT
+  s.dcid as "DCID",
   s.student_number as "Student_number",
   ltrim(rtrim(replace(s.last_name,chr(34),chr(39)))) as "Last_name",
   ltrim(rtrim(replace(s.first_name,chr(34),chr(39)))) as "First_name",
@@ -80,7 +86,11 @@ SELECT
   s.grade_level as "Grade",
   sch.name as "School_name",
   CONCAT(substr(CONCAT('000',cc.Section_Number),-4), CONCAT(' ', u.last_name)) as "Homeroom",
-  s.enroll_status
+  s.enroll_status as "Enroll_status",
+  s.entrycode as "Entry_code",
+  s.entrydate as "Entry_date",
+  s.exitcode as "Exit_code",
+  s.exitdate as "Exit_date"
   FROM active_students stu
 join (  -- detect new year rollover "today"
   select 1 as value
